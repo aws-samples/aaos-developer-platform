@@ -1,0 +1,63 @@
+## Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+## SPDX-License-Identifier: MIT-0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cuttlefish
+  labels:
+    app: cuttlefish
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cuttlefish
+  template:
+    metadata:
+      labels:
+        app: cuttlefish
+    spec:
+      tolerations: 
+      # Example: Regular worker nodes may have a taint, thus you need to tolerate the taint
+      # when you assign the gitlab runner manager with nodeSelector or affinity to the nodes.
+      - key: "android"
+        operator: "Exists"
+        effect: NoSchedule
+      nodeSelector:
+        karpenter.sh/nodepool: cuttlefish
+      containers:
+      - name: android
+        image: XXXXX  # Replace this with your image and tag
+        command: ["/home/ubuntu/stage/bin/launch_cvd"]
+        args:
+        - "--cpus"
+        - "8"
+        - "--memory_mb"
+        - "13000"
+        - "--vhost_net"
+        - "true"
+        - "--verbosity"
+        - "DEBUG"
+        - "--enable_audio"
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            memory: "13Gi"
+            cpu: "7000m"
+        env:
+        - name: HOME
+          value: "/home/ubuntu/stage"
+        volumeMounts:
+        - name: kvm
+          mountPath: /dev/kvm
+        ports:
+        - containerPort: 6520
+        - containerPort: 8443
+      volumes:
+      - name: kvm
+        hostPath:
+          path: /dev/kvm
+
+
+
